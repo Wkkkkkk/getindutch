@@ -188,6 +188,7 @@ public class AddExpenses extends AppCompatActivity {
     private void refreshAdapter(final String mUserId, final ArrayList<UserAddExpense> mUsers){
         mRecyclerView.setAdapter(null);
         mAdapter.clear();
+        mAdapter.checkedUsers.clear();
         mGroupDatabaseReference = mFirebaseDatabase.getReference().child("groups").child(selectedGroup).child("members");
         mGroupDatabaseReference.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
