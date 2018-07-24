@@ -1,11 +1,9 @@
 package com.weikang.getindutch;
 
-import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.TabLayout;
-import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
@@ -28,6 +26,7 @@ import java.util.Arrays;
 
 public class MainPage extends AppCompatActivity {
     public static final int RC_SIGN_IN = 1;
+    private static final int CAMERA_PIC_REQUEST = 2;
     public static final String GUEST = "guest";
     public static final String TAG = "MainPage";
 
@@ -41,9 +40,8 @@ public class MainPage extends AppCompatActivity {
     private String mUsername;
     private Toolbar mToolbar;
     private ViewPager mViewPager;
-
+    private TessOCR mTessOCR;
     private Users currentUser;
-    private Fragment allPageFrag;
 
 
     @Override
@@ -66,7 +64,6 @@ public class MainPage extends AppCompatActivity {
                     setupViewPage(mViewPager);
                     TabLayout tabLayout = (TabLayout) findViewById(R.id.tabLayout);
                     tabLayout.setupWithViewPager(mViewPager);
-                    allPageFrag = new AllPage();
                 } else {
                     //user is signed out
                     //TODO: onSignedOutCleanup method
@@ -127,6 +124,8 @@ public class MainPage extends AppCompatActivity {
         }
     }
 
+
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -166,6 +165,6 @@ public class MainPage extends AppCompatActivity {
         adapter.addFragment(new SummaryPage(),"Summary");
         adapter.addFragment(new FriendsPage(),"Friends");
         viewPager.setAdapter(adapter);
+        viewPager.setOffscreenPageLimit(2);
     }
-
 }

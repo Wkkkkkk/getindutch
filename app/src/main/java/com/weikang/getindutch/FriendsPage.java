@@ -1,6 +1,7 @@
 package com.weikang.getindutch;
 
 import android.app.Dialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -29,6 +30,10 @@ import java.util.ArrayList;
 public class FriendsPage extends Fragment {
     private static final String TAG = "FriendsPageFragment";
 
+
+    //clickable variables
+    private TextView friendRequest;
+    private TextView friendRequestCount;
     private FloatingActionButton mAddButton;
     private RecyclerView mRecyclerView;
     private FirebaseAuth mAuth;
@@ -42,8 +47,9 @@ public class FriendsPage extends Fragment {
     private FirebaseUser user;
     private FirebaseDatabase mFirebaseDatabase;
     private DatabaseReference mFriendsDatabaseReference;
-    private ChildEventListener mChildEventListener;
     private DatabaseReference mUsersDatabaseReference;
+    private DatabaseReference mFriendReqDatabaseReference;
+    private ChildEventListener mChildEventListener;
 
     //Dialog
     private Dialog mDialogAddFriend;
@@ -53,22 +59,54 @@ public class FriendsPage extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.friends_page,container,false);
 
+        //Widgets
+        friendRequest = (TextView) view.findViewById(R.id.friendRequest);
+        friendRequestCount = (TextView) view.findViewById(R.id.friendRequestCount);
         mAddButton = (FloatingActionButton) view.findViewById(R.id.friendsAddPopup);
+
+        //Firebase user
         mAuth = FirebaseAuth.getInstance();
         user = mAuth.getCurrentUser();
 
         //Initialise Adapter and recyclerview etc
         mRecyclerView = (RecyclerView) view.findViewById(R.id.friendsRecycler);
-        //use getActivity() instead of (this) for context cos this is a fragment
         mAdapter = new FriendsAdapter(mFriends, getActivity());
         mRecyclerView.setAdapter(mAdapter);
         mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
 
-        //initialise Firebase variables
+        //Database
         mFirebaseDatabase = FirebaseDatabase.getInstance();
         mFriendsDatabaseReference = mFirebaseDatabase.getReference().child("users").child(mAuth.getCurrentUser().getUid()).child("friends");
         mUsersDatabaseReference = mFirebaseDatabase.getReference().child("users");
+        mFriendReqDatabaseReference = mFirebaseDatabase.getReference().child("friendReq");
 
+        //show request count
+        mFriendReqDatabaseReference.child(user.getUid()).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                int requestCount = 0;
+                for (DataSnapshot requests : dataSnapshot.child("received").getChildren()){
+                    if (requests.child("ignored").getValue().toString().equals("false")) {
+                        requestCount++;
+                    }
+                }
+                friendRequestCount.setText(String.valueOf(requestCount));
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+            }
+        });
+
+        friendRequest.setOnClickListener(new View.OnClickListener(){
+            @Override
+            public void onClick(View v){
+                Intent intent = new Intent(getActivity(), FriendRequestPage.class);
+                startActivity(intent);
+            }
+        });
+
+        //Initialise Dialog for popup
         mDialogAddFriend = new Dialog(getActivity());
 
         //database child event listener
@@ -158,14 +196,27 @@ public class FriendsPage extends Fragment {
                                     final DatabaseReference userRef = mUsersDatabaseReference.child(user.getUid()).child("friends").child(friendUID);
                                     ValueEventListener eventListener2 = new ValueEventListener() {
                                         @Override
-                                        public void onDataChange(DataSnapshot dataSnapshot) {
-                                            if(!dataSnapshot.exists()) {
+                                        public void onDataChange(DataSnapshot dataSnapshot1) {
+                                            if(!dataSnapshot1.exists()) {
                                                 //create new user
-                                                Toast.makeText(getActivity(), currUserName + " has been added.", Toast.LENGTH_SHORT).show();
-                                                mUsersDatabaseReference.child(user.getUid()).child("friends").child(friendUID).setValue(true);
-                                                mUsersDatabaseReference.child(friendUID).child("friends").child(user.getUid()).setValue(true);
-                                                mDialogAddFriend.dismiss();
-                                                mChildEventListener = null;
+                                                mFriendReqDatabaseReference.child(friendUID).child("received").child(user.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+                                                    @Override
+                                                    public void onDataChange(@NonNull DataSnapshot dataSnapshot2) {
+                                                        if (dataSnapshot2.child("ignored").getValue().toString().equals("false")){
+                                                            Toast.makeText(getActivity(), currUserName + " friend request has already been sent.", Toast.LENGTH_SHORT).show();
+                                                        } else {
+                                                            Toast.makeText(getActivity(), currUserName + " friend request has been sent.", Toast.LENGTH_SHORT).show();
+                                                            mFriendReqDatabaseReference.child(friendUID).child("received").child(user.getUid()).child("ignored").setValue(false);
+                                                            mDialogAddFriend.dismiss();
+                                                            mChildEventListener = null;
+                                                        }
+                                                    }
+
+                                                    @Override
+                                                    public void onCancelled(@NonNull DatabaseError databaseError) {
+
+                                                    }
+                                                });
                                             } else {
                                                 Toast.makeText(getActivity(),currUserName + " is already your friend!", Toast.LENGTH_SHORT).show();
                                             }
@@ -187,4 +238,12 @@ public class FriendsPage extends Fragment {
             }
         });
     }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        mAdapter.clear();
+        mChildEventListener = null;
+    }
+
 }

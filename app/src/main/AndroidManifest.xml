@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.weikang.getindutch">
 
+    <uses-permission android:name="android.permission.WRITE_INTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -17,7 +20,9 @@
             </intent-filter>
         </activity>
         <activity android:name=".AddExpenses" />
-        <activity android:name=".GroupsPage"></activity>
+        <activity android:name=".GroupsPage" />
+        <activity android:name=".FriendRequestPage" />
+        <activity android:name=".ScannedTextPage"></activity>
     </application>
 
 </manifest>
